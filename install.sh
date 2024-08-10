@@ -1,5 +1,6 @@
 sudo chmod 755 ./stress.js
 sudo chmod 755 ./nvm.sh
+sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
 sudo apt-get install curl -y
 sudo apt-get update -y
 # sudo apt install nodejs
