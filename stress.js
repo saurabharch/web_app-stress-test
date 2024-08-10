@@ -231,18 +231,18 @@ function runArtillaryTest(url, port, amount, messages , schema) {
 
     // Run the Thor.js command with the correct file path
     const artilleryCommand = `artillery run ${filepath}`;
-    console.log(chalk.blue(`Starting Thor test with command: ${artilleryCommand}`));
+    console.log(chalk.blue(`Starting Artillery test with command: ${artilleryCommand}`));
 
     exec(artilleryCommand, (error, stdout, stderr) => {
         if (error) {
-            console.error(chalk.red(`Error executing Thor command: ${error.message}`));
+            console.error(chalk.red(`Error executing Artillery command: ${error.message}`));
             return;
         }
         if (stderr) {
-            console.error(chalk.red(`Thor error output: ${stderr}`));
+            console.error(chalk.red(`Artillery error output: ${stderr}`));
             return;
         }
-        console.log(chalk.green(`Thor output:\n${stdout}`));
+        console.log(chalk.green(`Artillery output:\n${stdout}`));
     });
    } catch (error) {
     console.error(chalk.red("An error occurred during the test:", err));
@@ -539,7 +539,7 @@ async function runTestsOnAllTargets() {
     const targets = await getTargets(true); // Get only active targets
     for (const target of targets) {
         await runAutocannonTest(target.url, target.port, target.path);
-        // Uncomment the following line if you want to run Thor.js test as well
+        // Uncomment the following line if you want to run Artillery.js test as well
         await runArtillaryTest(target.url, '5333', 1000000, 10, 'wss');
     }
 }
@@ -620,11 +620,12 @@ async function deleteSelectedTarget(id) {
     });
 }
 
-async function runTestsOnAllTargets() {
-    const targets = await getTargets();
-    for (const target of targets) {
-        await runAutocannonTest(target.url, target.port, target.path);
-        // Uncomment the following line if you want to run Thor.js test as well
-        // runThorTest(target.url, target.port, 1000, 100);
-    }
-}
+// async function runTestsOnAllTargets() {
+//     const targets = await getTargets();
+//     for (const target of targets) {
+//         await runAutocannonTest(target.url, target.port, target.path);
+//         // Uncomment the following line if you want to run Artillery.js test as well
+//         // runThorTest(target.url, target.port, 1000, 100);
+//           await runArtillaryTest(target.url, '5333', 1000000, 10, 'wss');
+//     }
+// }
