@@ -6,8 +6,12 @@
     "start": "nodemon stress.js --watch"
   },
   "dependencies": {
+    "chalk": "^4.1.2",
     "cron": "^3.1.7",
-    "node-cron": "^3.0.3"
+    "dotenv": "^16.4.5",
+    "inquirer": "^8.2.6",
+    "node-cron": "^3.0.3",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "autocannon": "^7.15.0",
