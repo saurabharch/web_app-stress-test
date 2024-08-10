@@ -17,6 +17,7 @@ sudo apt install python3-pip && sudo apt install python-pip
 sudo pip3 --version
 sudo /usr/bin/python3 -m pip install --upgrade pip
 sudo npm i -g autocannon
+npm install -g thor
 sudo npm install
 # sudo npm run start
 sudo npm i -g pm2 && sudo pm2 start --name stress-bot stress.js --watch && sudo pm2 startup && sudo pm2 save

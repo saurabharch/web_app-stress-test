@@ -6,14 +6,17 @@
     "start": "nodemon stress.js --watch"
   },
   "dependencies": {
+    "basic-ftp": "^5.0.5",
     "chalk": "^4.1.2",
     "cron": "^3.1.7",
     "dotenv": "^16.4.5",
     "inquirer": "^8.2.6",
     "node-cron": "^3.0.3",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
+    "artillery": "^2.0.19",
     "autocannon": "^7.15.0",
     "nodemon": "^3.1.4"
   }
