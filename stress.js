@@ -2,8 +2,9 @@ const cron = require('node-cron');
 const autocannon = require('autocannon');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
+const Q = require('q');
 const sqlite3 = require('sqlite3').verbose();
-const { exec } = require('child_process').exec;
+const { exec } = require('child_process');
 const path = require('path');
 // Database setup
 const db = new sqlite3.Database('./targets.db', (err) => {
@@ -95,7 +96,7 @@ async function saveTarget(url, path, port) {
     });
 }
 
-async function runAutocannonTest(url, port, path) {
+async function runAutocannonTest(url, port, path, scheme) {
     if (isTestRunning) {
         console.log(chalk.yellow('Test is already running.'));
         return;
@@ -103,7 +104,7 @@ async function runAutocannonTest(url, port, path) {
 
     isTestRunning = true; // Set the flag to true
     try {
-        const fullUrl = `http://${url}:${port}${path}`;
+        const fullUrl = `${scheme}://${url}:${port}${path}`;
         console.log(chalk.blue(`Starting autocannon test on ${fullUrl}`));
 
         const largeBody = generateExactSizeBody(1024); // 1024 bytes payload
@@ -185,8 +186,14 @@ async function main() {
     } else {
         console.log(chalk.yellow('Existing targets found. Running tests on them...'));
         for (const target of targets) {
-            await runAutocannonTest(target.url, target.port, target.path);
-            await runArtillaryTest(target.url, '5333', 1000000, 100000, 'wss');
+            await runAutocannonTest(target.url,target.port, target.path, 'https');
+            await runArtillaryTest(target.url, '5333', 1000000, 10, 'wss')
+                .then(output => {
+                    console.log(chalk.green('Artillery test completed successfully.'));
+                })
+                .catch(error => {
+                    console.error(chalk.red('An error occurred during the Artillery test:', error));
+                });
             // Uncomment the following line if you want to run Thor.js test as well
             // runThorTest(target.url, target.port, 1000, 100);
         }
@@ -226,29 +233,55 @@ async function getCurrentTarget(id) {
 
 // Function to run artillary WebSocket test
 function runArtillaryTest(url, port, amount, messages , schema) {
-   try {
-    const filepath = path.join(__dirname, 'websocket-test.yml');
+    const deferred = Q.defer();
 
-    // Run the Thor.js command with the correct file path
-    const artilleryCommand = `artillery run ${filepath}`;
-    console.log(chalk.blue(`Starting Artillery test with command: ${artilleryCommand}`));
+    try {
+        isArtillaryTestRunning = true;
+        const filepath = path.join(__dirname, 'websocket-test.yml');
+        const fileyml = `websocket-test.yml`;
 
-    exec(artilleryCommand, (error, stdout, stderr) => {
-        if (error) {
-            console.error(chalk.red(`Error executing Artillery command: ${error.message}`));
-            return;
-        }
-        if (stderr) {
-            console.error(chalk.red(`Artillery error output: ${stderr}`));
-            return;
-        }
-        console.log(chalk.green(`Artillery output:\n${stdout}`));
-    });
-   } catch (error) {
-    console.error(chalk.red("An error occurred during the test:", err));
-   } finally {
-    isArtillaryTestRunning = false; // Reset the flag
-}
+        // Construct the commands using the provided parameters
+        const artilleryCommand = `npx artillery run ${fileyml}`;
+        //first method
+        // const artillerCmd = `npx artillery run --target ${schema}://${url}:${port} --amount ${amount} --messages ${messages}`;
+
+        // second method
+        const artillerCmd = `artillery quick — count ${amount} -n ${messages} ${schema}://${url}:${port}`;
+        console.log(chalk.blue(`Starting Artillery test with command: ${artilleryCommand}`));
+        console.log(chalk.blue(`Starting Artillery test with command: ${artillerCmd}`));
+
+        // Execute the first Artillery command
+        exec(artilleryCommand, (error, stdout, stderr) => {
+            if (error) {
+                deferred.reject(new Error(`Error executing Artillery command: ${error.message}`));
+                return;
+            }
+            if (stderr) {
+                console.error(chalk.red(`Artillery error output: ${stderr}`));
+            }
+            console.log(chalk.green(`Artillery output:\n${stdout}`));
+
+            // Execute the second Artillery command
+            exec(artillerCmd, (error, stdout, stderr) => {
+                if (error) {
+                    deferred.reject(new Error(`Error executing Artillery command: ${error.message}`));
+                    return;
+                }
+                if (stderr) {
+                    console.error(chalk.red(`Artillery error output: ${stderr}`));
+                }
+                console.log(chalk.green(`Artillery output:\n${stdout}`));
+                deferred.resolve(stdout); // Resolve the promise after the second command completes
+            });
+        });
+    } catch (error) {
+        console.error(chalk.red("An error occurred during the test:", error));
+        deferred.reject(error);
+    } finally {
+        isArtillaryTestRunning = false; // Reset the flag
+    }
+
+    return deferred.promise; // Return the promis
 }
 
 async function promptUserForTarget() {
@@ -447,7 +480,14 @@ async function promptUserForTarget() {
                         }
                     ]).then(answers => {
                         const { url, port, amount, messages, scheme } = answers;
-                        runArtillaryTest(url, port, amount, messages , scheme);
+                        runArtillaryTest(url, port, amount, messages , scheme)
+                        .then(output => {
+                            console.log(chalk.green('Artillery test completed successfully.'));
+                        })
+                        .catch(error => {
+                            console.error(chalk.red('An error occurred during the Artillery test:', error));
+                        });
+                        // runArtillaryTest(url, port, amount, messages , scheme);
                     });
                 } else {
                     console.log(chalk.cyan('Exiting...'));
@@ -538,9 +578,16 @@ async function showCurrentTarget(id) {
 async function runTestsOnAllTargets() {
     const targets = await getTargets(true); // Get only active targets
     for (const target of targets) {
-        await runAutocannonTest(target.url, target.port, target.path);
+        await runAutocannonTest(target.url, target.port, target.path, 'https');
+        await runArtillaryTest(target.url, '5333', 1000000, 10, 'wss')
+        .then(output => {
+            console.log(chalk.green('Artillery test completed successfully.'));
+        })
+        .catch(error => {
+            console.error(chalk.red('An error occurred during the Artillery test:', error));
+        });
         // Uncomment the following line if you want to run Artillery.js test as well
-        await runArtillaryTest(target.url, '5333', 1000000, 10, 'wss');
+        // await runArtillaryTest(target.url, '5333', 1000000, 10, 'wss');
     }
 }
 
