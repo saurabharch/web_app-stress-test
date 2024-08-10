@@ -3,8 +3,8 @@ const autocannon = require('autocannon');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 const sqlite3 = require('sqlite3').verbose();
-const { exec } = require('child_process');
-
+const { exec } = require('child_process').exec;
+const path = require('path');
 // Database setup
 const db = new sqlite3.Database('./targets.db', (err) => {
     if (err) {
@@ -227,10 +227,13 @@ async function getCurrentTarget(id) {
 // Function to run artillary WebSocket test
 function runArtillaryTest(url, port, amount, messages , schema) {
    try {
-    const thorCommand = `artillery quick — count ${amount} -n ${messages} ${schema}://${url}:${port}`;
-    console.log(chalk.blue(`Starting Thor test with command: ${thorCommand}`));
+    const filepath = path.join(__dirname, 'websocket-test.yml');
 
-    exec(thorCommand, (error, stdout, stderr) => {
+    // Run the Thor.js command with the correct file path
+    const artilleryCommand = `artillery run ${filepath}`;
+    console.log(chalk.blue(`Starting Thor test with command: ${artilleryCommand}`));
+
+    exec(artilleryCommand, (error, stdout, stderr) => {
         if (error) {
             console.error(chalk.red(`Error executing Thor command: ${error.message}`));
             return;
@@ -537,7 +540,7 @@ async function runTestsOnAllTargets() {
     for (const target of targets) {
         await runAutocannonTest(target.url, target.port, target.path);
         // Uncomment the following line if you want to run Thor.js test as well
-        await runArtillaryTest(target.url, '5333', 1000000, 100000, 'wss');
+        await runArtillaryTest(target.url, '5333', 1000000, 10, 'wss');
     }
 }
 
