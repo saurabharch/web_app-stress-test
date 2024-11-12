@@ -17,7 +17,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "artillery": "^2.0.19",
+    "artillery": "^2.0.21",
     "autocannon": "^7.15.0",
     "nodemon": "^3.1.4"
   }
